@@ -7,6 +7,6 @@
   "keywords": ["plugin", "wp", "yoast seo"],
   "require": {
     "php": "^7.0",
-    "composer/installers": "^1.5"
+    "composer/installers": "^1"
   }
 }
