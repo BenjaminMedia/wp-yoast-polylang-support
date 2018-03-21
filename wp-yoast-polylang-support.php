@@ -23,6 +23,23 @@ class WPYoastPolylangSupport
                 $this->localizeYoastOption($optionKey);
             });
         }
+        add_action('wpseo_admin_footer', function(){
+            if(!pll_current_language()) {
+                $this->printEditWarning();
+            }
+        });
+    }
+
+    public function printEditWarning()
+    {
+        $class = 'notice notice-warning';
+        $message = '
+        <strong>Note:</strong> 
+        You are editing the global default options that will only work if no language options are set.
+        <br>
+        To edit language specific options please select a language in the drop down above
+        ';
+        printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), $message );
     }
 
     /**
@@ -36,23 +53,20 @@ class WPYoastPolylangSupport
             if ($language = pll_current_language()) {
                 return $this->mergeOptions(
                     $defaultOptions,
-                    get_option(
-                        $this->getOptionKey($optionKey, $language),
-                        $defaultOptions // Return default options if option is not set yet
-                    )
+                    get_option($this->getLocalizedOptionKey($optionKey, $language), $defaultOptions)
                 );
             }
             return $defaultOptions;
         });
-        add_filter('update_option_' . $optionKey, function ($currentOptions, $newOptions) use ($optionKey) {
+        add_filter('pre_update_option_' . $optionKey, function ($newOptions, $currentOptions) use ($optionKey) {
             if ($language = pll_current_language()) {
-                update_option($this->getOptionKey($optionKey, $language), $newOptions);
+                update_option($this->getLocalizedOptionKey($optionKey, $language), $newOptions);
+                return $currentOptions;
             }
-            return $currentOptions;
+            return $newOptions;
         }, 1, 2);
 
     }
-
 
     /**
      *  Merges options to use default value if key is empty in localized options
@@ -64,9 +78,10 @@ class WPYoastPolylangSupport
      */
     private function mergeOptions($defaultOptions, $localizedOptions)
     {
+        ;
         $output = [];
         foreach($localizedOptions as $key => $value) {
-            if (empty($value)) {
+            if ($value === '' || is_array($value) && empty($value)) {
                 $output[$key] = $defaultOptions[$key] ?? $value;
             }
             $output[$key] = $value;
@@ -82,7 +97,7 @@ class WPYoastPolylangSupport
      *
      * @return string
      */
-    private function getOptionKey($optionKey, $language)
+    private function getLocalizedOptionKey($optionKey, $language)
     {
         return sprintf('%s_%s', $optionKey, $language);
     }
